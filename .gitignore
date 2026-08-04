@@ -1,0 +1,10 @@
+.env
+
+# PHP / Composer
+vendor/
+.phpunit.result.cache
+.phpunit.cache/
+
+# IDE
+.idea/
+.vscode/
