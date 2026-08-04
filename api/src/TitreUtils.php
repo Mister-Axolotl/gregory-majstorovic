@@ -9,7 +9,7 @@ final class TitreUtils
 {
     public static function normaliser(?string $titre): string
     {
-        if ($titre !== null) {
+        if ($titre === null || trim($titre) === '') {
             throw new \InvalidArgumentException('Le titre ne peut pas etre vide');
         }
 
