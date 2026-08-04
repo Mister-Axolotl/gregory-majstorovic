@@ -1,92 +1,50 @@
-# TP Conteneurisation & CI — squelette **PHP / Slim 4 + php-fpm**
+# Rapport Grégory MAJSTOROVIC
 
-Point de départ du TP. Consultez `SUJET.md` et `ANNEXE-PHP.md` pour les consignes et le barème.
+## Tests unitaires
 
-## Particularité de ce parcours
+Avant de commencer j'ai tester le projet actuel :
 
-**php-fpm ne parle pas HTTP, il parle FastCGI sur le port 9000.** Votre reverse proxy nginx
-utilisera donc `fastcgi_pass` et non `proxy_pass`. C'est l'architecture de production standard
-de PHP — et le principal point d'attention de ce parcours.
+![alt text](/images-rapport/image.png)
 
-```
-navigateur ──HTTP──▶ nginx (proxy) ──FastCGI:9000──▶ php-fpm (api x3)
-```
+les tests sont concluants.
 
-## Ce qui vous est fourni
+## Test web
 
-```
-├── api/                      application Slim complète (ne pas modifier)
-│   ├── composer.json
-│   ├── composer.lock         ← commité : garantit des builds reproductibles
-│   ├── public/index.php      point d'entrée de l'API
-│   ├── src/                  code métier
-│   ├── tests/                le test unitaire utilisé par la CI
-│   ├── phpunit.xml
-│   └── docker/zz-ping.conf   config php-fpm pour la sonde de santé
-├── db/init.sql               schéma + jeu de données initial
-├── web/                      front statique servi par nginx
-├── .env.example
-└── .gitignore
-```
+L'interface web fonctionne correctement, je vois les tâches.
 
-## Ce que vous devez écrire
+![alt text](/images-rapport/image6.png)
 
-| Fichier | Partie du sujet |
-|---|---|
-| `api/Dockerfile` | Partie 1 |
-| `api/.dockerignore` | Partie 1 |
-| `compose.yml` | Partie 2 |
-| `nginx-proxy.conf` | Partie 3 |
-| `.github/workflows/ci.yml` | Partie 4 |
-| `RAPPORT.md` | livrables |
+## Preuve mise à l'échelle et limite de ressource
 
-Plus un `.env` local (copié depuis `.env.example`), **jamais commité**.
+On voit bien les 3 réplicas et qu'ils sont plafonnées à 128MB.
 
-## Démarrage
+![alt text](/images-rapport/image8.png)
 
-```bash
-cp .env.example .env
+## Test cloisonnement réseau
 
-# 1) Vérifiez d'abord que les tests passent, hors Docker :
-cd api
-composer install
-vendor/bin/phpunit
+Quand je tente de faire `docker compose exec web ping db`, il me répond `ping: bad address 'db'`, ce qui prouve que le conteneur front n'a pas accès à la base de données.
 
-# 2) Puis écrivez le Dockerfile, le compose, etc.
-docker compose up -d --build
-```
+![alt text](/images-rapport/image2.png)
 
-L'application est ensuite accessible sur <http://localhost:8080>.
+## Bonne version image
 
-## Contrat d'API
+J'ai bien utilisé les sha pour toutes les images comme ça je suis sûr d'avoir la bonne version
 
-| Méthode | Route | Rôle |
-|---|---|---|
-| `GET` | `/api/taches` | liste les tâches |
-| `POST` | `/api/taches` | crée une tâche — `{"titre":"…","faite":false}` |
-| `GET` | `/api/qui` | hostname du conteneur (sert à vérifier le load-balancing) |
+![alt text](/images-rapport/image3.png)
 
-## Variables d'environnement attendues par l'API
+## Test CI/CD
 
-L'application ne contient **aucune** valeur de connexion en dur. Votre `compose.yml` doit lui
-fournir :
+J'ai changé le code pour que le test renvoie une erreur, et on l'a voit bien dans les tests du CI CD.
 
-- `DB_HOST` — ex. `db`
-- `DB_NAME`
-- `DB_USER`
-- `DB_PASSWORD`
+![alt text](/images-rapport/image4.png)
 
-## Points à ne pas rater dans le Dockerfile
+Et là quand je remet le code correct, on voit bien que ça fonctionne correctement.
 
-- L'extension **`pdo_pgsql`** n'est pas présente dans `php:8.4-fpm-alpine` : il faut la compiler,
-  donc installer `postgresql-dev` et `$PHPIZE_DEPS`… puis les **supprimer dans le même `RUN`**,
-  sinon l'image n'est allégée d'aucun octet.
-- Le paquet **`fcgi`** (commande `cgi-fcgi`) est nécessaire au `HEALTHCHECK`.
-- `composer install` doit se faire avec **`--no-dev`** dans l'image : PHPUnit n'a rien à faire
-  en production. La CI, elle, installe **avec** les dépendances de développement.
+![alt text](/images-rapport/image5.png)
 
-## Note sur la version de PHP
+## Image sur Docker Hub
 
-`composer.json` exige `php >= 8.2` pour rester installable sur un poste un peu ancien, mais
-l'image cible du TP est **`php:8.4-fpm-alpine`**. Le code n'utilise aucune syntaxe postérieure
-à 8.2 : les deux fonctionnent.
+L'image est bien poussée sur docker hub
+https://hub.docker.com/repository/docker/misteraxolotl/tp-msii-api/general
+
+![alt text](/images-rapport/image7.png)
